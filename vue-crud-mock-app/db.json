@@ -1,0 +1,44 @@
+{
+    "products": [
+        {
+            "id": "1",
+            "name": "Premium Wireless Headphones",
+            "price": 299.99,
+            "category": "Electronics",
+            "description": "Experience high-fidelity sound with our premium wireless headphones. Features active noise cancellation and 30-hour battery life.",
+            "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000&auto=format&fit=crop"
+        },
+        {
+            "id": "2",
+            "name": "Ergonomic Office Chair",
+            "price": 199.50,
+            "category": "Furniture",
+            "description": "Designed for comfort and productivity. Adjustable height, lumbar support, and breathable mesh back.",
+            "image": "https://images.unsplash.com/photo-1592078615290-033ee584e267?q=80&w=1000&auto=format&fit=crop"
+        },
+        {
+            "id": "3",
+            "name": "Smart Fitness Watch",
+            "price": 149.00,
+            "category": "Wearables",
+            "description": "Track your health and workouts with precision. Monitors heart rate, sleep, and steps. Water-resistant up to 50m.",
+            "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000&auto=format&fit=crop"
+        },
+        {
+            "id": "4",
+            "name": "Minimalist Desk Lamp",
+            "price": 45.99,
+            "category": "Lighting",
+            "description": "Sleek and modern desk lamp with adjustable brightness and color temperature. Perfect for reading or working.",
+            "image": "https://images.unsplash.com/photo-1507473888900-52e1adad54cd?q=80&w=1000&auto=format&fit=crop"
+        },
+        {
+            "id": "5",
+            "name": "Mechanical Keyboard",
+            "price": 120.00,
+            "category": "Electronics",
+            "description": "Tactile and responsive mechanical switches. customize with RGB lighting and programmable keys.",
+            "image": "https://images.unsplash.com/photo-1587829741301-dc798b91a603?q=80&w=1000&auto=format&fit=crop"
+        }
+    ]
+}
