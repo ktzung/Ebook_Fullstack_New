@@ -137,26 +137,216 @@ CREATE TABLE Categories (
 
 > **LƯU Ý**: Phần Backend API này **giống hệt** bài thực hành MVC. Nếu bạn đã làm bài MVC rồi, có thể dùng lại project API cũ và nhảy sang **PHẦN 3**.
 
-### Step 1: Tạo CSDL bằng Migration
-**Giải thích:** CSDL là nơi lưu dữ liệu thật, cần tạo trước khi chạy API.  
-**Lệnh:**
+### Step 1: Chuẩn bị công cụ Migration
+**Giải thích:** Migration là cách tạo/ cập nhật CSDL tự động từ code C#.
+```bash
+# Cài EF Tools (nếu chưa có)
+dotnet tool install --global dotnet-ef
+
+# Kiểm tra phiên bản
+dotnet ef --version
+```
+
+### Step 2: Tạo CSDL bằng Migration
+**Giải thích:** Tạo DB và bảng dựa vào `DbContext` + Models.
 ```bash
 dotnet ef migrations add InitialDb
 dotnet ef database update
 ```
 
-### Step 2: Seed dữ liệu giả (Fake Data)
-**File: `Data/DbSeeder.cs`**
+### Step 3: Seed dữ liệu giả (Fake Data)
+**Giải thích:** Seed giúp có dữ liệu mẫu để test UI/CRUD nhanh.
+
+#### 3.1. Tạo file `Data/DbSeeder.cs`
 ```csharp
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
 public static class DbSeeder
 {
-    public static void Seed(ApplicationDbContext context)
+    public static async Task SeedAsync(
+        ApplicationDbContext context,
+        UserManager<IdentityUser> userManager,
+        RoleManager<IdentityRole> roleManager)
     {
-        if (context.Categories.Any() || context.Books.Any()) return;
-        // Logic seed dữ liệu...
+        // 0) Seed Roles
+        string[] roles = { "Admin", "Librarian", "Reader" };
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+
+        // 1) Seed Categories (idempotent)
+        var categoriesToSeed = new List<Category>
+        {
+            new Category { Name = "Công nghệ thông tin", Description = "Lập trình, AI, Database" },
+            new Category { Name = "Kinh tế", Description = "Quản trị, Marketing" },
+            new Category { Name = "Văn học", Description = "Tiểu thuyết, thơ" },
+            new Category { Name = "Khoa học", Description = "Vật lý, Hóa học" }
+        };
+
+        foreach (var cat in categoriesToSeed)
+        {
+            var exists = await context.Categories.AnyAsync(c => c.Name == cat.Name);
+            if (!exists) context.Categories.Add(cat);
+        }
+        await context.SaveChangesAsync();
+
+        // 2) Seed Books
+        if (!context.Books.Any())
+        {
+            var categoryMap = await context.Categories
+                .Where(c => new[] { "Công nghệ thông tin", "Kinh tế", "Văn học", "Khoa học" }.Contains(c.Name))
+                .ToDictionaryAsync(c => c.Name, c => c.Id);
+
+            if (!categoryMap.ContainsKey("Công nghệ thông tin")
+                || !categoryMap.ContainsKey("Kinh tế")
+                || !categoryMap.ContainsKey("Văn học")
+                || !categoryMap.ContainsKey("Khoa học"))
+            {
+                return; // Không đủ category để seed sách
+            }
+
+            var itCategoryId = categoryMap["Công nghệ thông tin"];
+            var ecoCategoryId = categoryMap["Kinh tế"];
+            var litCategoryId = categoryMap["Văn học"];
+            var sciCategoryId = categoryMap["Khoa học"];
+            context.Books.AddRange(
+                new Book { Title = "Lập trình C# cơ bản", Price = 120000, CategoryId = itCategoryId, IsPublic = true },
+                new Book { Title = "SQL nâng cao", Price = 150000, CategoryId = itCategoryId, IsPublic = true },
+                new Book { Title = "Marketing căn bản", Price = 98000, CategoryId = ecoCategoryId, IsPublic = true },
+                new Book { Title = "Quản trị tài chính", Price = 135000, CategoryId = ecoCategoryId, IsPublic = false },
+                new Book { Title = "Dế Mèn phiêu lưu ký", Price = 65000, CategoryId = litCategoryId, IsPublic = true },
+                new Book { Title = "Vật lý đại cương", Price = 110000, CategoryId = sciCategoryId, IsPublic = true }
+            );
+            await context.SaveChangesAsync();
+        }
+
+        // 3) Seed Admin user
+        var adminUser = await userManager.FindByNameAsync("admin");
+        if (adminUser == null)
+        {
+            adminUser = new IdentityUser { UserName = "admin", Email = "admin@library.com" };
+            var result = await userManager.CreateAsync(adminUser, "Admin123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+
+        // 4) Seed Librarian user
+        var librarianUser = await userManager.FindByNameAsync("librarian1");
+        if (librarianUser == null)
+        {
+            librarianUser = new IdentityUser { UserName = "librarian1", Email = "librarian@library.com" };
+            var result = await userManager.CreateAsync(librarianUser, "Lib123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(librarianUser, "Librarian");
+            }
+        }
+
+        // 5) Seed Reader user
+        var readerUser = await userManager.FindByNameAsync("reader1");
+        if (readerUser == null)
+        {
+            readerUser = new IdentityUser { UserName = "reader1", Email = "reader@library.com" };
+            var result = await userManager.CreateAsync(readerUser, "Reader123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(readerUser, "Reader");
+            }
+        }
     }
 }
 ```
+
+#### 3.2. Gọi Seeder trong `Program.cs`
+```csharp
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+    await DbSeeder.SeedAsync(context, userManager, roleManager);
+}
+```
+
+### Step 4: Rollback migration và reset DB (khi cần làm lại)
+
+**4.1. Xoá migration cuối (chỉ khi chưa chạy update)**
+```bash
+dotnet ef migrations remove
+```
+
+**4.2. Rollback DB về migration trước**
+```bash
+# Liệt kê migrations
+dotnet ef migrations list
+
+# Rollback về migration trước (ví dụ: InitialDb)
+dotnet ef database update InitialDb
+```
+
+**4.3. Reset toàn bộ DB (xoá sạch và tạo lại)**
+```bash
+# Xoá DB hiện tại
+dotnet ef database drop -f
+
+# Tạo lại migration và DB
+dotnet ef migrations add InitialDb
+dotnet ef database update
+```
+
+> Nếu seed không chạy: kiểm tra đã gọi `DbSeeder.SeedAsync(...)` trong `Program.cs` hay chưa.
+
+---
+
+## ✅ Seed dữ liệu Users + Books theo role (hướng dẫn chi tiết)
+
+### 1) Tạo các tài khoản mẫu theo role
+Sau khi chạy seeding, bạn sẽ có 3 tài khoản mẫu:
+
+| Role | Username | Password | Mục đích test |
+|------|----------|----------|---------------|
+| Admin | `admin` | `Admin123!` | Full quyền CRUD |
+| Librarian | `librarian1` | `Lib123!` | Thêm/Sửa Books |
+| Reader | `reader1` | `Reader123!` | Chỉ xem |
+
+> Nếu muốn đổi mật khẩu, sửa trực tiếp trong `DbSeeder.cs`.
+
+### 2) Seed Books để kiểm thử đúng quyền
+Trong seeding, đã có:
+- **Books công khai** (`IsPublic = true`) → Guest và Reader đều xem được.
+- **Books riêng tư** (`IsPublic = false`) → Guest không xem được.
+
+Ví dụ seed đã có (trích):
+```csharp
+new Book { Title = "Quản trị tài chính", Price = 135000, CategoryId = ecoCategory.Id, IsPublic = false }
+```
+
+### 3) Cách test theo role
+1. **Login Admin** → xem thêm/sửa/xóa tất cả.
+2. **Login Librarian** → thêm/sửa Books, **không xóa**.
+3. **Login Reader** → chỉ xem (nút CRUD bị ẩn).
+4. **Không login (Guest)** → chỉ thấy sách công khai.
+
+### 4) Mở rộng: thêm Books đa dạng theo từng nhóm
+Bạn có thể thêm nhiều sách mẫu hơn theo từng lĩnh vực:
+```csharp
+context.Books.AddRange(
+    new Book { Title = "Python căn bản", Price = 90000, CategoryId = itCategory.Id, IsPublic = true },
+    new Book { Title = "Kinh tế học vi mô", Price = 125000, CategoryId = ecoCategory.Id, IsPublic = true },
+    new Book { Title = "Truyện ngắn chọn lọc", Price = 70000, CategoryId = litCategory.Id, IsPublic = true }
+);
+```
+
+> Lưu ý: nếu đã có dữ liệu, hãy xóa DB hoặc reset migration để seed lại.
 
 ---
 
@@ -196,6 +386,18 @@ dotnet add package AutoMapper.Extensions.Microsoft.DependencyInjection
 **File: `Program.cs`**
 ```csharp
 // ... (Các phần config DB, Identity giống bài trước)
+
+// Gợi ý: nới lỏng password rules để seed tài khoản demo
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 // QUAN TRỌNG: Cấu hình CORS
 // Giải thích: Trình duyệt mặc định chặn request từ domain khác (vd: localhost:3000 gọi localhost:5000).
