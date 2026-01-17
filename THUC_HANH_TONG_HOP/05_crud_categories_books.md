@@ -166,3 +166,16 @@ public class BooksController : ControllerBase
     }
 }
 ```
+
+### Step 5: Seed dữ liệu mẫu theo role (tóm tắt)
+```csharp
+// Admin: admin / Admin123!
+// Librarian: librarian1 / Lib123!
+// Reader: reader1 / Reader123!
+```
+
+### Step 6: Kiểm thử nhanh với Postman
+- GET `/api/Categories` → public
+- POST `/api/Categories` → chỉ Admin
+- POST `/api/Books` → Admin/Librarian
+- DELETE `/api/Books/{id}` → chỉ Admin

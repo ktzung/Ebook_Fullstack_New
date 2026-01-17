@@ -96,3 +96,8 @@ onMounted(load)
   </v-card>
 </v-dialog>
 ```
+
+### Step 5: Lưu ý phân quyền UI
+- Admin: thấy nút Thêm/Sửa/Xóa.
+- Librarian: thấy Thêm/Sửa, không thấy Xóa.
+- Reader: chỉ xem, không có nút CRUD.

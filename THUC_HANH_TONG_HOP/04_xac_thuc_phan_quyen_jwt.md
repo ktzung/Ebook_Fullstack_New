@@ -108,3 +108,17 @@ public async Task<IActionResult> Login(LoginDto model)
     return Ok(new { token, username = user.UserName, roles });
 }
 ```
+
+### Step 5: Cấu hình password rules (dễ seed cho demo)
+```csharp
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
+```

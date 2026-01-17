@@ -61,3 +61,11 @@ Hoàn thành chuỗi bài thực hành và có hệ thống hoạt động đún
 - Login Admin → thấy nút Thêm/Sửa/Xóa
 - Login Librarian → không thấy Xóa
 - Guest → bị chuyển về `/login`
+
+### Step 5: Test API bằng Postman (tóm tắt)
+- POST `/api/Auth/login` → lưu token
+- GET `/api/Categories` → public
+- POST `/api/Categories` → chỉ Admin
+- POST `/api/Books` → Admin/Librarian
+- PUT `/api/Books/{id}` → Admin/Librarian
+- DELETE `/api/Books/{id}` → chỉ Admin

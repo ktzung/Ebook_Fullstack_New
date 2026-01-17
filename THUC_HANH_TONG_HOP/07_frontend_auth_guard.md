@@ -130,3 +130,8 @@ const login = async () => {
 }
 </script>
 ```
+
+### Step 5: Thông tin tài khoản demo
+- Admin: `admin / Admin123!`
+- Librarian: `librarian1 / Lib123!`
+- Reader: `reader1 / Reader123!`

@@ -124,3 +124,18 @@ app.Run();
 dotnet ef migrations add InitialCreate
 dotnet ef database update
 ```
+
+### Step 7: Rollback / Reset DB (khi cần làm lại)
+```bash
+# Xoá migration cuối (chỉ khi chưa update)
+dotnet ef migrations remove
+
+# Rollback DB về migration trước
+dotnet ef migrations list
+dotnet ef database update InitialCreate
+
+# Reset toàn bộ DB
+dotnet ef database drop -f
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
